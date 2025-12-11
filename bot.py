@@ -1,16 +1,23 @@
+
 import telebot
 import requests
 import os
 
-BOT_TOKEN = "8583621506:AAE6DR9bNJ4OYEbEK08bEMFxxO4-PdzJKcA"  
-
+BOT_TOKEN = os.getenv("8583621506:AAE6DR9bNJ4OYEbEK08bEMFxxO4-PdzJKcA")  # Secure: read token from environment
 bot = telebot.TeleBot(BOT_TOKEN)
 
-INSTAGRAM_API = "https://saveig.app/api?url="  # Public only API
+# Working public Instagram downloader API
+INSTAGRAM_API = "https://igram.world/api/instagram?url="  
+
 
 @bot.message_handler(commands=['start'])
 def start(msg):
-    bot.reply_to(msg, "Send any *public* Instagram link.\nPrivate account not supported ❌", parse_mode="Markdown")
+    bot.reply_to(
+        msg,
+        "Send any *public* Instagram link.\nPrivate accounts are not supported ❌",
+        parse_mode="Markdown"
+    )
+
 
 @bot.message_handler(func=lambda m: True)
 def download(msg):
@@ -24,16 +31,18 @@ def download(msg):
 
     try:
         api_url = INSTAGRAM_API + url
-        data = requests.get(api_url).json()
+        response = requests.get(api_url).json()
 
-        if "error" in data or data.get("is_private"):
-            bot.send_message(msg.chat.id, "❌ Private account এর ভিডিও ডাউনলোড করা যাবে না!")
+        # Check for errors or private profile
+        if "error" in response or response.get("is_private"):
+            bot.send_message(msg.chat.id, "❌ Unable to download. Private accounts are not supported.")
             return
 
-        video_url = data['medias'][0]['url']
+        video_url = response['medias'][0]['url']
         bot.send_video(msg.chat.id, video_url)
 
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Error: {str(e)}")
+
 
 bot.polling()
